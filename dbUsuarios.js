@@ -1,5 +1,4 @@
 const mysql = require('mysql2');
-const bcrypt = require('bcrypt');
 
 const pool = mysql.createPool({
     host: 'localhost',
