@@ -5,7 +5,7 @@ const db = require('./dbUsuarios');
 const jwt = require('jsonwebtoken');
 const dbUsuarios = require('./dbUsuarios');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const readline = require('readline');
 const axios = require('axios');
 
