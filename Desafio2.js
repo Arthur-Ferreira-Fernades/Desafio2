@@ -78,7 +78,7 @@ function realizarSignIn() {
     rl.question('Digite seu e-mail: ', (email) => {
         rl.question('Digite sua senha: ', async (senha) => {
             try {
-                const resposta = await axios.post('http://localhost:3000/signin', {
+                const resposta = await axios.post(`'${PORT}/signin'`, {
                     email,
                     senha,
                 });
@@ -147,7 +147,7 @@ function realizarSignUp(nome, email, senha, telefoneNumero, telefoneDDD) {
                 rl.question('Digite o número de telefone: ', (telefoneNumero) => {
                     rl.question('Digite o DDD do telefone: ', async (telefoneDDD) => {
                         const telefone = [{ numero: telefoneNumero, ddd: telefoneDDD }];
-                        return axios.post('http://localhost:3000/signup', { nome, email, senha, telefone })
+                        return axios.post(`'${PORT}/signup'`, { nome, email, senha, telefone })
                         .then((resposta) => {
                             authToken = resposta.data.token;
                             console.log('Cadastro bem-sucedido!');
@@ -188,7 +188,7 @@ app.get('/usuario', authenticateToken, async (req, res) => {
 
 async function RecuperaDados(authToken) {
     try {
-        const resposta = await axios.get('http://localhost:3000/usuario', {
+        const resposta = await axios.get(`'${PORT}/usuario'`, {
             headers: {
                 Authorization: `Bearer ${authToken}`,
             },
