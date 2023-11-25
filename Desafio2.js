@@ -9,21 +9,6 @@ const PORT = process.env.PORT || 3000;
 const readline = require('readline');
 const axios = require('axios');
 
-const conexao = mysql.createConnection({
-    host: process.env.JAWSDB_HOST,
-    user: process.env.JAWSDB_USER,
-    password: process.env.JAWSDB_PASSWORD,
-    database: process.env.JAWSDB_DATABASE,
-  });
-  
-  conexao.connect((err) => {
-    if (err) {
-      console.error('Erro na conexão com o banco de dados:', err);
-    } else {
-      console.log('Conectado ao banco de dados MySQL.');
-    }
-  });
-
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
