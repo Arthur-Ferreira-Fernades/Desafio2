@@ -21,7 +21,7 @@ const jwtSecret = process.env.JWT_SECRET;
 app.use(bodyParser.json());
 
 let authToken = '';
-let userId = '';
+let usuarioId = '';
 
 const authenticateToken = async (req, res, next) => {
     const tokenHeader = req.headers['authorization'];
@@ -30,16 +30,16 @@ const authenticateToken = async (req, res, next) => {
         return res.status(401).json({ error: 'Não autorizado. Token não fornecido.' });
     }
 
-    const [bearer, token] = tokenHeader.split(' ');
+    const [bearer, authToken] = tokenHeader.split(' ');
 
-    if (bearer !== 'Bearer' || !token) {
+    if (bearer !== 'Bearer' || !authToken) {
         return res.status(401).json({ error: 'Não autorizado. Formato de token inválido.' });
     }
 
     try {
-        const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-        userId = decoded.usuarioId;  // Atribui o userId à variável global
-        req.user = { userId: decoded.usuarioId };
+        const decoded = await jwt.verify(authToken, process.env.JWT_SECRET);
+        usuarioId = decoded.usuarioId;
+        req.usuario = { usuarioId: decoded.usuarioId };
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
@@ -59,7 +59,7 @@ function realizarSignIn() {
             if (usuario.length === 0) {
                 return res.status(401).json({ error: 'Usuário e/ou senha inválidos.' });
             }
-            const userId = usuario[0].id;
+            const usuarioId = usuario[0].id;
             await db.execute('UPDATE usuarios SET ultimo_login = ?, data_atualizacao = ?, token = ? WHERE id = ?',
                 [new Date(), new Date(), jwt.sign({ usuarioId: usuario[0].id }, process.env.JWT_SECRET, { expiresIn: '30m' }), usuario[0].id]);
 
@@ -82,17 +82,22 @@ function realizarSignIn() {
                     email,
                     senha,
                 });
-                console.log('Resposta da API:', resposta.data);
+                console.log('Login bem sucessido:', resposta.data);
                 if (resposta.data.token) {
                     authToken = resposta.data.token;
-                    userId = resposta.data.id;
+                    usuarioId = resposta.data.id;
                 } else {
                     console.error('Token não encontrado na resposta da API.');
                 }
             } catch (erro) {
-                console.error('Erro na chamada da API:', erro.message);
+                if (erro.response.status === 401) {
+                    console.error('Usuário e/ou senha inválidos');
+                    mostrarOpcoes();
+                } else {
+                    console.error('Erro na chamada da API:', erro.message);
+                }
             }
-            mostrarOpcoes(); // Continua mostrando as opções
+            mostrarOpcoes();
         });
     });
 }
@@ -146,10 +151,15 @@ function realizarSignUp(nome, email, senha, telefoneNumero, telefoneDDD) {
                         .then((resposta) => {
                             authToken = resposta.data.token;
                             console.log('Cadastro bem-sucedido!');
-                            mostrarOpcoes(); // Chama a próxima opção automaticamente após o cadastro
+                            mostrarOpcoes();
                         })
                         .catch((erro) => {
-                            console.error('Erro na chamada da API:', erro.message);
+                            if (erro.response.status === 400) {
+                                console.error('E-mail já existente.');
+                                mostrarOpcoes();
+                            } else {
+                                console.error('Erro na chamada da API:', erro.message);
+                            }
                         });
                     });
                 });
@@ -158,26 +168,36 @@ function realizarSignUp(nome, email, senha, telefoneNumero, telefoneDDD) {
     });
 }
 
-function RecuperaDados() {
-    app.get('/user', authenticateToken, async (req, res) => {
-        // Lógica para recuperar informações do usuário
-        try {
-            const [user] = await db.execute('SELECT * FROM usuarios WHERE id = ?', [userId]);
-            if (user.length === 0) {
-                return res.status(404).json({ error: 'Usuário não encontrado.' });
-            }
-            res.json({
-                id: user[0].id,
-                nome: user[0].nome,
-                email: user[0].email,
-                telefone: user[0].telefone,
-            });
-        } catch (error) {
-            console.error('Erro ao recuperar informações do usuário:', error);
-            res.status(500).json({ error: 'Erro interno do servidor.' });
+app.get('/usuario', authenticateToken, async (req, res) => {
+    try {
+        const [usuario] = await db.execute('SELECT * FROM usuarios WHERE id = ?', [usuarioId]);
+        if (usuario.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
-    });
-    mostrarOpcoes();
+        res.json({
+            id: usuario[0].id,
+            nome: usuario[0].nome,
+            email: usuario[0].email,
+            telefone: usuario[0].telefone,
+        });
+    } catch (error) {
+        console.error('Erro ao recuperar informações do usuário:', error);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+async function RecuperaDados(authToken) {
+    try {
+        const resposta = await axios.get('http://localhost:3000/usuario', {
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+            },
+        });
+        console.log('Dados do usuário:', resposta.data);
+        mostrarOpcoes();
+    } catch (erro) {
+        console.error('Erro na chamada da API:', erro.message);
+    }
 }
 
   
@@ -194,34 +214,23 @@ function mostrarOpcoes() {
                 realizarSignIn();
                 break;
             case '2':
-                realizarSignUp();
+                await realizarSignUp();
                 break;
             case '3':
-                try {
-                    const resposta = await axios.get('http://localhost:3000/user', {
-                        headers: {
-                            Authorization: `Bearer ${authToken}`,
-                        },
-                    });
-                    console.log('Dados do usuário:', resposta.data);
-                } catch (erro) {
-                    console.error('Erro na chamada da API:', erro.message);
-                }
                 RecuperaDados();
             break;
         case '4':
-          console.log('Saindo...');
-          rl.close();
+            console.log('Saindo...');
+            rl.close();
+            process.exit();
           break;
-  
         default:
           console.log('Opção inválida. Tente novamente.');
           mostrarOpcoes();
       }
     });
   }
-  
-  // Inicia a interface do usuário
+
 mostrarOpcoes();
 
 app.listen(PORT, () => {
