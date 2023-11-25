@@ -5,7 +5,7 @@ const db = require('./dbUsuarios');
 const jwt = require('jsonwebtoken');
 const dbUsuarios = require('./dbUsuarios');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3001;
 const readline = require('readline');
 const axios = require('axios');
 
@@ -78,7 +78,7 @@ function realizarSignIn() {
     rl.question('Digite seu e-mail: ', (email) => {
         rl.question('Digite sua senha: ', async (senha) => {
             try {
-                const resposta = await axios.post(`'${PORT}/signin'`, {
+                const resposta = await axios.post('http://localhost:3001/signin', {
                     email,
                     senha,
                 });
@@ -147,7 +147,7 @@ function realizarSignUp(nome, email, senha, telefoneNumero, telefoneDDD) {
                 rl.question('Digite o número de telefone: ', (telefoneNumero) => {
                     rl.question('Digite o DDD do telefone: ', async (telefoneDDD) => {
                         const telefone = [{ numero: telefoneNumero, ddd: telefoneDDD }];
-                        return axios.post(`'${PORT}/signup'`, { nome, email, senha, telefone })
+                        return axios.post('http://localhost:3001/signup', { nome, email, senha, telefone })
                         .then((resposta) => {
                             authToken = resposta.data.token;
                             console.log('Cadastro bem-sucedido!');
@@ -186,9 +186,9 @@ app.get('/usuario', authenticateToken, async (req, res) => {
     }
 });
 
-async function RecuperaDados(authToken) {
+async function RecuperaDados() {
     try {
-        const resposta = await axios.get(`'${PORT}/usuario'`, {
+        const resposta = await axios.get('http://localhost:3001/usuario', {
             headers: {
                 Authorization: `Bearer ${authToken}`,
             },
